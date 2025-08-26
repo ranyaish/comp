@@ -80,7 +80,7 @@ export default function App(){
     if(!ph){ setRows([]); return; }
     setLoading(true);
     const { data, error } = await supabase
-      .from("customers_coupons")
+      .from("comp.customers_coupons")
       .select("*")
       .eq("phone", ph)
       .order("created_at", { ascending: false });
@@ -120,7 +120,7 @@ export default function App(){
     };
 
     setLoading(true);
-    const { error } = await supabase.from("customers_coupons").insert(payload);
+    const { error } = await supabase.from("comp.customers_coupons").insert(payload);
     setLoading(false);
     if(error) return alert("שגיאה בשמירת פיצוי: "+error.message);
 
@@ -136,7 +136,7 @@ export default function App(){
     const approver = prompt("שם מאשר המימוש:");
     if(!approver) return;
     const { error } = await supabase
-      .from("customers_coupons")
+      .from("comp.customers_coupons")
       .update({ redeemed: true, redeemed_at: new Date(), redeemed_by: approver })
       .eq("id", rec.id);
     if(error) return alert("שגיאה במימוש: "+error.message);
@@ -173,7 +173,7 @@ export default function App(){
           created_at: new Date(),
           updated_at: new Date()
         }));
-        const { error } = await supabase.from("customers_coupons").insert(comps);
+        const { error } = await supabase.from("comp.customers_coupons").insert(comps);
         if(error) throw error;
         alert(`יובאו ${comps.length} רשומות`);
         if(rows[0]?.phone) setQueryPhone(rows[0].phone);

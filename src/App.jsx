@@ -25,7 +25,8 @@ const Button = ({ children, className="", ...rest }) => <button {...rest} classN
 
 function normalizePhone(v){ return (v||"").replace(/\D/g, ""); }
 const phoneRegex = /^0?5\d{8}$/; // 05XXXXXXXX
-
+// בדיקת תקינות לפני insert
+if(!phoneRegex.test(ph)) return alert("מספר טלפון לא תקין (נדרש 05XXXXXXXX)");
 const COUPONS = [
   { key: "FOCACCIA", label: "פוקאצ'ה לבחירה" },
   { key: "TOPPINGS2", label: "2 תוספות לבחירה" },

@@ -118,9 +118,54 @@ export default function App(){
   }
 
   async function addCoupon(e){
-    e.preventDefault();
-    if(!session) return alert("יש להתחבר למערכת");
+  e.preventDefault();
+  if(!session) return alert("יש להתחבר למערכת");
 
+  const ph = normalizePhone(phone);
+  if(!phoneRegex.test(ph)) return alert("מספר טלפון לא תקין");
+  if(!name.trim()) return alert("יש להזין שם הלקוח");
+  if(!couponType) return alert("בחר קופון");
+  if(couponType==="CREDIT" && (!creditAmount || isNaN(Number(creditAmount)))) return alert("סכום זיכוי לא תקין");
+  if(!reason.trim()) return alert("יש להזין סיבת הפיצוי");
+  if(!approverName.trim()) return alert("יש להזין שם מאשר הפיצוי");
+
+  const couponText =
+    couponType==="CREDIT"
+      ? `סכום זיכוי: ₪${Number(creditAmount)}`
+      : (COUPONS.find(c=>c.key===couponType)?.label || couponType);
+
+  const payload = {
+    phone: ph,
+    name: name.trim(),
+    coupon_type: couponText,
+    reason: reason.trim(),
+    created_by: approverName.trim(), // ← משתמשים בעמודה קיימת
+    redeemed: false,
+    redeemed_at: null,
+    redeemed_by: null,
+    created_at: new Date(),   // תאריך יצירה אוטומטי
+    updated_at: new Date()
+  };
+
+  const { error } = await db.from("customers_coupons").insert(payload);
+  if(error) return alert("שגיאה בשמירה: "+error.message);
+
+  // ✅ חדש: הודעת אישור
+  alert(`פיצוי עבור "${name.trim()}" הוזן בהצלחה`);
+
+  // איפוס טופס
+  setReason(""); 
+  setApproverName("");
+  setCouponType(""); 
+  setCreditAmount("");
+
+  // ✅ חדש: רענון מיידי של כרטיס הלקוח
+  setQueryPhone(ph);
+  await fetchByPhone(ph);
+
+  // אופציונלי: סגירת מודאל הקופון אם פתוח
+  setCouponModalOpen(false);
+}
     const ph = normalizePhone(phone);
     if(!phoneRegex.test(ph)) return alert("מספר טלפון לא תקין");
     if(!name.trim()) return alert("יש להזין שם הלקוח");

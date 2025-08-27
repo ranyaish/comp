@@ -1,11 +1,17 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import * as XLSX from "xlsx";
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || window.__SUPABASE_URL__ || "",
-  import.meta.env.VITE_SUPABASE_ANON_KEY || window.__SUPABASE_ANON_KEY__ || ""
-);
+// יצירת לקוח עם תמיכה גם ב-Secrets של GitHub Actions וגם בגיבוי מ-index.html
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || window.__SUPABASE_URL__ || "";
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || window.__SUPABASE_ANON_KEY__ || "";
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  alert("חסר SUPABASE URL/KEY – הגדר ב-Secrets או ב-index.html");
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ⚠️ חשוב: עובדים בתוך סכימה comp, ולכן שם הטבלה ללא prefix
+const db = supabase.schema('comp');
 
 const Label = ({ children }) => <label className="block text-sm mb-1 font-medium">{children}</label>;
 const Input = (p) => <input {...p} className={`w-full rounded-2xl border px-3 py-2 ${p.className||""}`} />;
@@ -50,16 +56,14 @@ export default function App(){
   const [couponType, setCouponType] = useState("");
   const [creditAmount, setCreditAmount] = useState("");
 
-  const fileRef = useRef(null);
-
   const phoneValid = useMemo(()=> phoneRegex.test(phone), [phone]);
 
   async function fetchByPhone(p){
     const ph = normalizePhone(p);
     if(!ph){ setRows([]); return; }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("comp.customers_coupons")
+    const { data, error } = await db
+      .from("customers_coupons")
       .select("*")
       .eq("phone", ph)
       .order("created_at", { ascending: false });
@@ -91,26 +95,22 @@ export default function App(){
       updated_at: new Date()
     };
 
-    const { error } = await supabase.from("comp.customers_coupons").insert(payload);
+    const { error } = await db.from("customers_coupons").insert(payload);
     if(error) return alert("שגיאה בשמירה: "+error.message);
 
     setReason(""); setCreatedBy(""); setCouponType(""); setCreditAmount("");
-    setQueryPhone(ph); // רענון כרטיס
+    setQueryPhone(ph); // ירענן את כרטיס הלקוח בחיפוש הבא
   }
 
   async function redeemCoupon(rec){
     const approver = prompt("שם מאשר המימוש:");
     if(!approver) return;
-    const { error } = await supabase
-      .from("comp.customers_coupons")
+    const { error } = await db
+      .from("customers_coupons")
       .update({ redeemed: true, redeemed_at: new Date(), redeemed_by: approver })
       .eq("id", rec.id);
     if(error) return alert("שגיאה במימוש: "+error.message);
     fetchByPhone(rec.phone);
-  }
-
-  function importFromXlsx(ev){
-    // אופציונלי – תוסיף מאוחר יותר; לא קריטי לבילד
   }
 
   return (

@@ -85,6 +85,10 @@ export default function App(){
     return ()=> subscription.unsubscribe();
   },[]);
 
+  // הודעות מערכת (חדש)
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
   // חיפוש והצגה
   const [queryPhone, setQueryPhone] = useState("");
   const [rows, setRows] = useState([]);
@@ -113,59 +117,18 @@ export default function App(){
       .eq("phone", ph)
       .order("created_at", { ascending: false });
     setLoading(false);
-    if(error) return alert("שגיאה בטעינה: "+error.message);
+    if(error) {
+      setErrorMsg("שגיאה בטעינה: " + error.message);
+      setTimeout(()=>setErrorMsg(""), 4000);
+      return;
+    }
     setRows(data||[]);
   }
 
   async function addCoupon(e){
-  e.preventDefault();
-  if(!session) return alert("יש להתחבר למערכת");
+    e.preventDefault();
+    if(!session) return alert("יש להתחבר למערכת");
 
-  const ph = normalizePhone(phone);
-  if(!phoneRegex.test(ph)) return alert("מספר טלפון לא תקין");
-  if(!name.trim()) return alert("יש להזין שם הלקוח");
-  if(!couponType) return alert("בחר קופון");
-  if(couponType==="CREDIT" && (!creditAmount || isNaN(Number(creditAmount)))) return alert("סכום זיכוי לא תקין");
-  if(!reason.trim()) return alert("יש להזין סיבת הפיצוי");
-  if(!approverName.trim()) return alert("יש להזין שם מאשר הפיצוי");
-
-  const couponText =
-    couponType==="CREDIT"
-      ? `סכום זיכוי: ₪${Number(creditAmount)}`
-      : (COUPONS.find(c=>c.key===couponType)?.label || couponType);
-
-  const payload = {
-    phone: ph,
-    name: name.trim(),
-    coupon_type: couponText,
-    reason: reason.trim(),
-    created_by: approverName.trim(), // ← משתמשים בעמודה קיימת
-    redeemed: false,
-    redeemed_at: null,
-    redeemed_by: null,
-    created_at: new Date(),   // תאריך יצירה אוטומטי
-    updated_at: new Date()
-  };
-
-  const { error } = await db.from("customers_coupons").insert(payload);
-  if(error) return alert("שגיאה בשמירה: "+error.message);
-
-  // ✅ חדש: הודעת אישור
-  alert(`פיצוי עבור "${name.trim()}" הוזן בהצלחה`);
-
-  // איפוס טופס
-  setReason(""); 
-  setApproverName("");
-  setCouponType(""); 
-  setCreditAmount("");
-
-  // ✅ חדש: רענון מיידי של כרטיס הלקוח
-  setQueryPhone(ph);
-  await fetchByPhone(ph);
-
-  // אופציונלי: סגירת מודאל הקופון אם פתוח
-  setCouponModalOpen(false);
-}
     const ph = normalizePhone(phone);
     if(!phoneRegex.test(ph)) return alert("מספר טלפון לא תקין");
     if(!name.trim()) return alert("יש להזין שם הלקוח");
@@ -193,12 +156,28 @@ export default function App(){
     };
 
     const { error } = await db.from("customers_coupons").insert(payload);
-    if(error) return alert("שגיאה בשמירה: "+error.message);
+    if(error) {
+      setErrorMsg("שגיאה בשמירה: " + error.message);
+      setTimeout(()=>setErrorMsg(""), 4000);
+      return;
+    }
+
+    // הודעת הצלחה (באנר)
+    setSuccessMsg(`פיצוי עבור "${name.trim()}" הוזן בהצלחה`);
+    setTimeout(()=>setSuccessMsg(""), 3000);
 
     // איפוס טופס
-    setReason(""); setApproverName("");
-    setCouponType(""); setCreditAmount("");
-    setQueryPhone(ph); // יציג בכרטיס הלקוח
+    setReason(""); 
+    setApproverName("");
+    setCouponType(""); 
+    setCreditAmount("");
+
+    // רענון מיידי של כרטיס הלקוח
+    setQueryPhone(ph);
+    await fetchByPhone(ph);
+
+    // אופציונלי: סגירת מודאל הקופון אם פתוח
+    setCouponModalOpen(false);
   }
 
   async function redeemCoupon(rec){
@@ -209,7 +188,11 @@ export default function App(){
       .from("customers_coupons")
       .update({ redeemed: true, redeemed_at: new Date(), redeemed_by: approver })
       .eq("id", rec.id);
-    if(error) return alert("שגיאה במימוש: "+error.message);
+    if(error) {
+      setErrorMsg("שגיאה במימוש: " + error.message);
+      setTimeout(()=>setErrorMsg(""), 4000);
+      return;
+    }
     fetchByPhone(rec.phone);
   }
 
@@ -223,6 +206,18 @@ export default function App(){
         <h1 className="text-2xl font-bold">מערכת ניהול פיצויים</h1>
         <Button onClick={()=> supabase.auth.signOut()} className="bg-gray-100">התנתק</Button>
       </div>
+
+      {/* הודעות מערכת */}
+      {successMsg && (
+        <div className="mb-4 rounded-2xl border border-green-300 bg-green-50 text-green-800 p-3 text-sm">
+          {successMsg}
+        </div>
+      )}
+      {errorMsg && (
+        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 text-red-800 p-3 text-sm">
+          {errorMsg}
+        </div>
+      )}
 
       {/* חיפוש לפי טלפון */}
       <div className="mb-4 grid sm:grid-cols-3 gap-3">

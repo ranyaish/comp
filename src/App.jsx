@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 // קורא קודם מסודות ה-Build (VITE_*) ואם לא – מגיבוי ב-index.html
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || window.__SUPABASE_URL__ || "";
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || window.__SUPABASE_ANON_KEY__ || "";
-
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   alert("חסר SUPABASE URL/KEY – הגדר ב-Secrets או ב-index.html");
 }
@@ -23,7 +22,7 @@ const Button = ({ children, className="", ...rest }) => <button {...rest} classN
 function normalizePhone(v){ return (v||"").replace(/\D/g,""); }
 const phoneRegex = /^0?5\d{8}$/;
 
-// רשימת קופונים (לפי הבקשה העדכנית)
+// רשימת קופונים
 const COUPONS = [
   { key: "FOCACCIA",  label: "פוקאצ'ה לבחירה" },
   { key: "TOPPING1",  label: "תוספת חינם" },
@@ -52,7 +51,6 @@ function Login(){
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
   async function signin(e){
     e.preventDefault();
     setLoading(true);
@@ -60,7 +58,6 @@ function Login(){
     setLoading(false);
     if(error) alert("שגיאת התחברות: " + error.message);
   }
-
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <form onSubmit={signin} className="w-[min(92vw,420px)] border rounded-2xl p-5 grid gap-3">
@@ -97,8 +94,7 @@ export default function App(){
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [reason, setReason] = useState("");
-  const [createdBy, setCreatedBy] = useState("");
-  const [approvedBy, setApprovedBy] = useState("");
+  const [approverName, setApproverName] = useState(""); // שדה מאוחד: “שם מאשר הפיצוי”
 
   const [couponModalOpen, setCouponModalOpen] = useState(false);
   const [couponType, setCouponType] = useState("");
@@ -131,8 +127,7 @@ export default function App(){
     if(!couponType) return alert("בחר קופון");
     if(couponType==="CREDIT" && (!creditAmount || isNaN(Number(creditAmount)))) return alert("סכום זיכוי לא תקין");
     if(!reason.trim()) return alert("יש להזין סיבת הפיצוי");
-    if(!createdBy.trim()) return alert("יש להזין מי הזין את הפיצוי");
-    if(!approvedBy.trim()) return alert("יש להזין שם מאשר הפיצוי");
+    if(!approverName.trim()) return alert("יש להזין שם מאשר הפיצוי");
 
     const couponText =
       couponType==="CREDIT"
@@ -144,12 +139,11 @@ export default function App(){
       name: name.trim(),
       coupon_type: couponText,
       reason: reason.trim(),
-      created_by: createdBy.trim(),
-      approved_by: approvedBy.trim(),
+      created_by: approverName.trim(), // ← משתמשים בעמודה קיימת
       redeemed: false,
       redeemed_at: null,
       redeemed_by: null,
-      created_at: new Date(),  // תאריך יצירה אוטומטי
+      created_at: new Date(),   // תאריך יצירה אוטומטי
       updated_at: new Date()
     };
 
@@ -157,9 +151,9 @@ export default function App(){
     if(error) return alert("שגיאה בשמירה: "+error.message);
 
     // איפוס טופס
-    setReason(""); setCreatedBy(""); setApprovedBy("");
+    setReason(""); setApproverName("");
     setCouponType(""); setCreditAmount("");
-    setQueryPhone(ph); // נוח להציג מיד בכרטיס הלקוח
+    setQueryPhone(ph); // יציג בכרטיס הלקוח
   }
 
   async function redeemCoupon(rec){
@@ -224,12 +218,8 @@ export default function App(){
           <Textarea required rows={2} value={reason} onChange={e=>setReason(e.target.value)} />
         </div>
         <div>
-          <Label>ע"י מי הוזן</Label>
-          <Input required value={createdBy} onChange={e=>setCreatedBy(e.target.value)} />
-        </div>
-        <div>
           <Label>שם מאשר הפיצוי</Label>
-          <Input required value={approvedBy} onChange={e=>setApprovedBy(e.target.value)} />
+          <Input required value={approverName} onChange={e=>setApproverName(e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <Button type="submit" className="bg-black text-white">שמור פיצוי</Button>
@@ -245,8 +235,7 @@ export default function App(){
               <tr>
                 <th className="text-right p-2">קופון</th>
                 <th className="text-right p-2">סיבה</th>
-                <th className="text-right p-2">הוזן ע"י</th>
-                <th className="text-right p-2">מאשר פיצוי</th>
+                <th className="text-right p-2">שם מאשר הפיצוי</th>
                 <th className="text-right p-2">נוצר ב־</th>
                 <th className="text-right p-2">סטטוס</th>
                 <th className="text-right p-2">פעולה</th>
@@ -258,7 +247,6 @@ export default function App(){
                   <td className="p-2">{r.coupon_type}</td>
                   <td className="p-2">{r.reason||"—"}</td>
                   <td className="p-2">{r.created_by||"—"}</td>
-                  <td className="p-2">{r.approved_by||"—"}</td>
                   <td className="p-2">{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</td>
                   <td className="p-2">
                     {r.redeemed ? `מומש ב-${new Date(r.redeemed_at).toLocaleString()} ע"י ${r.redeemed_by}` : "פתוח"}

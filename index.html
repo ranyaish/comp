@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ניהול פיצויים ללקוחות</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-
+    <!-- גיבוי ל-Secrets: אם אין Secrets, מלא כאן את הערכים -->
+    <script>
+      window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || ""; // לדוגמה: "https://XXXX.supabase.co"
+      window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || ""; // הדבק את anon key אם לא משתמשים ב-Secrets
+    </script>
   </head>
   <body class="bg-white text-black">
     <div id="root"></div>

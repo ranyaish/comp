@@ -117,6 +117,7 @@ export default function App(){
     setRows(data||[]);
   }
 
+  // ✅ כולל הודעת אישור אחרי שמירה + ריענון כרטיס
   async function addCoupon(e){
     e.preventDefault();
     if(!session) return alert("יש להתחבר למערכת");
@@ -139,21 +140,27 @@ export default function App(){
       name: name.trim(),
       coupon_type: couponText,
       reason: reason.trim(),
-      created_by: approverName.trim(), // ← משתמשים בעמודה קיימת
+      created_by: approverName.trim(), // שדה המאשר
       redeemed: false,
       redeemed_at: null,
       redeemed_by: null,
-      created_at: new Date(),   // תאריך יצירה אוטומטי
+      created_at: new Date(),
       updated_at: new Date()
     };
 
     const { error } = await db.from("customers_coupons").insert(payload);
-    if(error) return alert("שגיאה בשמירה: "+error.message);
+    if(error) return alert("שגיאה בשמירה: " + error.message);
 
-    // איפוס טופס
-    setReason(""); setApproverName("");
-    setCouponType(""); setCreditAmount("");
-    setQueryPhone(ph); // יציג בכרטיס הלקוח
+    // ✅ הודעת אישור
+    alert(`פיצוי עבור "${name.trim()}" הוזן בהצלחה`);
+
+    // איפוס הטופס ורענון כרטיס הלקוח
+    setReason("");
+    setApproverName("");
+    setCouponType("");
+    setCreditAmount("");
+    setQueryPhone(ph);
+    fetchByPhone(ph); // מציג מייד את הפיצוי החדש בטבלה
   }
 
   async function redeemCoupon(rec){
@@ -176,7 +183,10 @@ export default function App(){
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">מערכת ניהול פיצויים</h1>
-        <Button onClick={()=> supabase.auth.signOut()} className="bg-gray-100">התנתק</Button>
+        <div className="flex gap-2">
+          <Button onClick={()=> window.location.href = "./list.html"}>רשימת פיצויים</Button>
+          <Button onClick={()=> supabase.auth.signOut()} className="bg-gray-100">התנתק</Button>
+        </div>
       </div>
 
       {/* חיפוש לפי טלפון */}

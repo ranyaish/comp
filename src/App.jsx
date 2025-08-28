@@ -85,10 +85,6 @@ export default function App(){
     return ()=> subscription.unsubscribe();
   },[]);
 
-  // הודעות מערכת (חדש)
-  const [successMsg, setSuccessMsg] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-
   // חיפוש והצגה
   const [queryPhone, setQueryPhone] = useState("");
   const [rows, setRows] = useState([]);
@@ -117,11 +113,7 @@ export default function App(){
       .eq("phone", ph)
       .order("created_at", { ascending: false });
     setLoading(false);
-    if(error) {
-      setErrorMsg("שגיאה בטעינה: " + error.message);
-      setTimeout(()=>setErrorMsg(""), 4000);
-      return;
-    }
+    if(error) return alert("שגיאה בטעינה: "+error.message);
     setRows(data||[]);
   }
 
@@ -156,28 +148,12 @@ export default function App(){
     };
 
     const { error } = await db.from("customers_coupons").insert(payload);
-    if(error) {
-      setErrorMsg("שגיאה בשמירה: " + error.message);
-      setTimeout(()=>setErrorMsg(""), 4000);
-      return;
-    }
-
-    // הודעת הצלחה (באנר)
-    setSuccessMsg(`פיצוי עבור "${name.trim()}" הוזן בהצלחה`);
-    setTimeout(()=>setSuccessMsg(""), 3000);
+    if(error) return alert("שגיאה בשמירה: "+error.message);
 
     // איפוס טופס
-    setReason(""); 
-    setApproverName("");
-    setCouponType(""); 
-    setCreditAmount("");
-
-    // רענון מיידי של כרטיס הלקוח
-    setQueryPhone(ph);
-    await fetchByPhone(ph);
-
-    // אופציונלי: סגירת מודאל הקופון אם פתוח
-    setCouponModalOpen(false);
+    setReason(""); setApproverName("");
+    setCouponType(""); setCreditAmount("");
+    setQueryPhone(ph); // יציג בכרטיס הלקוח
   }
 
   async function redeemCoupon(rec){
@@ -188,11 +164,7 @@ export default function App(){
       .from("customers_coupons")
       .update({ redeemed: true, redeemed_at: new Date(), redeemed_by: approver })
       .eq("id", rec.id);
-    if(error) {
-      setErrorMsg("שגיאה במימוש: " + error.message);
-      setTimeout(()=>setErrorMsg(""), 4000);
-      return;
-    }
+    if(error) return alert("שגיאה במימוש: "+error.message);
     fetchByPhone(rec.phone);
   }
 
@@ -206,18 +178,6 @@ export default function App(){
         <h1 className="text-2xl font-bold">מערכת ניהול פיצויים</h1>
         <Button onClick={()=> supabase.auth.signOut()} className="bg-gray-100">התנתק</Button>
       </div>
-
-      {/* הודעות מערכת */}
-      {successMsg && (
-        <div className="mb-4 rounded-2xl border border-green-300 bg-green-50 text-green-800 p-3 text-sm">
-          {successMsg}
-        </div>
-      )}
-      {errorMsg && (
-        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 text-red-800 p-3 text-sm">
-          {errorMsg}
-        </div>
-      )}
 
       {/* חיפוש לפי טלפון */}
       <div className="mb-4 grid sm:grid-cols-3 gap-3">
